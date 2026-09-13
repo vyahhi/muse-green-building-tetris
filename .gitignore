@@ -1,0 +1,11 @@
+.env
+.venv/
+.uv-cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Personalized biometric/device calibration generated locally.
+wink_profile.json
+roll_profile.json
+nod_profile.json

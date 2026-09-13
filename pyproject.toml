@@ -1,0 +1,11 @@
+[project]
+name = "muse-monitor"
+version = "0.1.0"
+description = "Minimal live Muse 2 EEG viewer"
+requires-python = ">=3.12"
+dependencies = [
+  "brainflow>=5.22,<6",
+  "matplotlib>=3.8,<4",
+  "muselsl2 @ https://github.com/DominiqueMakowski/MuseLSL2/archive/refs/heads/main.zip",
+  "numpy>=1.26,<3",
+]
