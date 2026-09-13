@@ -49,7 +49,7 @@ UV_CACHE_DIR=.uv-cache uv run tetris_muselsl.py
 ```
 
 - Lean/tilt left or right: continuously choose the target column
-- Quick deliberate nod down and back: rotate once
+- Small deliberate nod down and back: rotate once
 - Pieces fall automatically
 
 Use `--rotation blink` to try the personalized double-blink detector instead,

@@ -245,7 +245,20 @@ def run() -> int:
             print("Universal controls ready — no movement calibration needed.", flush=True)
         mapper = RollColumnMapper(left_roll, right_roll)
         if args.rotation == "nod":
-            nod_detector = AccelNodDetector(center_forward, nod_forward)
+            if args.calibrate_controls:
+                nod_detector = AccelNodDetector(center_forward, nod_forward)
+            else:
+                # Universal mode favors a small, comfortable nod. The forward
+                # acceleration axis remains largely independent of roll, while
+                # hold/return confirmation and cooldown reject brief bumps.
+                nod_detector = AccelNodDetector(
+                    center_forward,
+                    nod_forward,
+                    activation_fraction=0.45,
+                    hold_samples=3,
+                    neutral_samples=3,
+                    cooldown_samples=60,
+                )
         print(
             f"Fused roll range: left={left_roll:+.1f}° right={right_roll:+.1f}°",
             flush=True,
