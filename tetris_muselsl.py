@@ -97,6 +97,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-blink-rotate", action="store_true", help=argparse.SUPPRESS,
     )
+    parser.add_argument(
+        "--calibrate-controls", action="store_true",
+        help="Run personalized tilt and nod calibration instead of universal defaults",
+    )
     parser.add_argument("--seed", type=int)
     return parser.parse_args()
 
@@ -193,42 +197,52 @@ def run() -> int:
         if not orientation.ready:
             raise RuntimeError("not enough synchronized IMU samples to calibrate")
 
-        print(
-            "TILT CALIBRATION: slowly sweep left-center-right-center twice.",
-            flush=True,
-        )
-        display.send(pose_frame("SWEEP"))
-        roll_sweep = collect(8.0)
-        if len(roll_sweep) < 80:
-            raise RuntimeError("too few tilt calibration samples")
-        left_roll = float(np.percentile(roll_sweep, 5))
-        right_roll = float(np.percentile(roll_sweep, 95))
-        if right_roll - left_roll < 8.0:
-            raise RuntimeError("tilt sweep was too small; please retry")
+        # Automatic neutral zeroing is sufficient for standard Muse placement.
+        # Active movement calibration remains available for unusual fit/range.
+        center_forward_samples = collect(1.5, component=2)
+        center_forward = float(np.median(center_forward_samples))
+        left_roll, right_roll = -35.0, 35.0
+        nod_forward = center_forward + 0.70
 
-        # Measure neutral immediately before the down pose. Unlike Euler pitch,
-        # forward acceleration does not wrap or couple strongly with head roll.
-        print("CENTER", flush=True)
-        display.send(pose_frame("REST"))
-        center_forward_samples = collect(2.5, component=2)
-
-        nod_forward = 0.0
-        if args.rotation == "nod":
-            print("NOD CALIBRATION: perform three slow down-and-back nods.", flush=True)
-            display.send(pose_frame("NOD"))
-            nod_samples = collect(8.0, component=2)
-            if len(nod_samples) < 80:
-                raise RuntimeError("too few nod-pose samples; please retry")
-            center_forward = float(np.median(center_forward_samples))
-            low = float(np.percentile(nod_samples, 5))
-            high = float(np.percentile(nod_samples, 95))
-            nod_forward = (
-                low if abs(low - center_forward) > abs(high - center_forward) else high
+        if args.calibrate_controls:
+            print(
+                "TILT CALIBRATION: slowly sweep left-center-right-center twice.",
+                flush=True,
             )
+            display.send(pose_frame("SWEEP"))
+            roll_sweep = collect(8.0)
+            if len(roll_sweep) < 80:
+                raise RuntimeError("too few tilt calibration samples")
+            left_roll = float(np.percentile(roll_sweep, 5))
+            right_roll = float(np.percentile(roll_sweep, 95))
+            if right_roll - left_roll < 8.0:
+                raise RuntimeError("tilt sweep was too small; please retry")
 
-        print("CENTER — calibration complete.", flush=True)
-        display.send(pose_frame("REST"))
-        collect(2.0)
+            print("CENTER", flush=True)
+            display.send(pose_frame("REST"))
+            center_forward_samples = collect(2.5, component=2)
+            center_forward = float(np.median(center_forward_samples))
+            if args.rotation == "nod":
+                print(
+                    "NOD CALIBRATION: perform three slow down-and-back nods.",
+                    flush=True,
+                )
+                display.send(pose_frame("NOD"))
+                nod_samples = collect(8.0, component=2)
+                if len(nod_samples) < 80:
+                    raise RuntimeError("too few nod-pose samples; please retry")
+                low = float(np.percentile(nod_samples, 5))
+                high = float(np.percentile(nod_samples, 95))
+                nod_forward = (
+                    low
+                    if abs(low - center_forward) > abs(high - center_forward)
+                    else high
+                )
+            print("CENTER — calibration complete.", flush=True)
+            display.send(pose_frame("REST"))
+            collect(2.0)
+        else:
+            print("Universal controls ready — no movement calibration needed.", flush=True)
         mapper = RollColumnMapper(left_roll, right_roll)
         if args.rotation == "nod":
             nod_detector = AccelNodDetector(center_forward, nod_forward)

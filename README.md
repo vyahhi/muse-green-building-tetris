@@ -57,5 +57,8 @@ or `--rotation off` to disable rotation input. Blink mode first requires a local
 `wink_profile.json` created by running `uv run calibrate_winks.py`; that personal
 calibration file is intentionally excluded from Git.
 
-At startup, follow the façade calibration cues: remain centered, sweep your
-head tilt left/right twice, then perform three slow down-and-back nods.
+At startup, remain centered briefly while the orientation filter establishes a
+neutral pose. Universal defaults then use a ±35° tilt range and a standard Muse
+forward-gravity nod threshold; no movement calibration is required. For an
+unusual fit or range of motion, pass `--calibrate-controls` to run the guided
+tilt-sweep and three-nod calibration.
